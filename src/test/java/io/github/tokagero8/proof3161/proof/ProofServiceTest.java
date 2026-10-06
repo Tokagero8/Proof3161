@@ -4,12 +4,14 @@ import io.github.tokagero8.proof3161.timestamp.TimestampAuthority;
 import io.github.tokagero8.proof3161.timestamp.TimestampException;
 import io.github.tokagero8.proof3161.timestamp.TimestampResult;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.Mockito.*;
 
 public class ProofServiceTest {
@@ -23,11 +25,18 @@ public class ProofServiceTest {
     private final TimestampAuthority timestampAuthority =
             mock(TimestampAuthority.class);
 
+    private final ProofRepository proofRepository =
+            mock(ProofRepository.class);
+
     private final Clock clock =
             Clock.fixed(CREATED_AT, ZoneOffset.UTC);
 
     private final ProofService proofService =
-            new ProofService(timestampAuthority, clock);
+            new ProofService(
+                    timestampAuthority,
+                    proofRepository,
+                    clock
+            );
 
     private final DocumentHash documentHash = new DocumentHash(
             HashAlgorithm.SHA256,
@@ -35,7 +44,7 @@ public class ProofServiceTest {
     );
 
     @Test
-    void shouldCreateProofWithTimestampResultAndApplicationTime() {
+    void shouldTimestampDocumentAndSaveProof() {
         byte[] token = {1, 2, 3};
 
         var timestampResult = new TimestampResult(TSA_TIMESTAMP, token);
@@ -43,20 +52,38 @@ public class ProofServiceTest {
         when(timestampAuthority.timestamp(documentHash))
                 .thenReturn(timestampResult);
 
-        var proof = proofService.createProof(documentHash);
+        when(proofRepository.save(any(Proof.class)))
+                .thenAnswer(returnsFirstArg());
 
-        assertNotNull(proof.id());
-        assertEquals(documentHash, proof.documentHash());
-        assertEquals(TSA_TIMESTAMP, proof.timestampResult().timestamp());
-        assertArrayEquals(token, proof.timestampResult().token());
-        assertEquals(CREATED_AT, proof.createdAt());
+        var result = proofService.createProof(documentHash);
 
-        verify(timestampAuthority).timestamp(documentHash);
-        verifyNoMoreInteractions(timestampAuthority);
+        var proofCaptor = ArgumentCaptor.forClass(Proof.class);
+
+        var order = inOrder(timestampAuthority, proofRepository);
+
+        order.verify(timestampAuthority).timestamp(documentHash);
+        order.verify(proofRepository).save(proofCaptor.capture());
+
+        var savedProof = proofCaptor.getValue();
+
+        assertNotNull(savedProof.id());
+        assertEquals(documentHash, savedProof.documentHash());
+        assertEquals(
+                TSA_TIMESTAMP,
+                savedProof.timestampResult().timestamp()
+        );
+        assertArrayEquals(
+                token,
+                savedProof.timestampResult().token()
+        );
+        assertEquals(CREATED_AT, savedProof.createdAt());
+        assertSame(savedProof, result);
+
+        verifyNoMoreInteractions(timestampAuthority, proofRepository);
     }
 
     @Test
-    void shouldPropagateTimestampingFailure() {
+    void shouldPropagateTimestampingFailureWithoutSavingProof() {
         var failure = new TimestampException(
                 "Failed to validate TSA response",
                 new IllegalStateException("Invalid signature")
@@ -71,17 +98,51 @@ public class ProofServiceTest {
         );
 
         assertSame(failure, exception);
+
         verify(timestampAuthority).timestamp(documentHash);
         verifyNoMoreInteractions(timestampAuthority);
+        verifyNoInteractions(proofRepository);
     }
 
     @Test
-    void shouldRejectNullHashWithoutCallingTimestampAuthority() {
+    void shouldPropagatePersistenceFailure() {
+        var timestampResult = new TimestampResult(
+                TSA_TIMESTAMP,
+                new byte[]{1, 2, 3}
+        );
+
+        var failure = new IllegalStateException(
+                "Persistence failed"
+        );
+
+        when(timestampAuthority.timestamp(documentHash))
+                .thenReturn(timestampResult);
+
+        when(proofRepository.save(any(Proof.class)))
+                .thenThrow(failure);
+
+        var exception = assertThrows(
+                IllegalStateException.class,
+                () -> proofService.createProof(documentHash)
+        );
+
+        assertSame(failure, exception);
+
+        var order = inOrder(timestampAuthority, proofRepository);
+
+        order.verify(timestampAuthority).timestamp(documentHash);
+        order.verify(proofRepository).save(any(Proof.class));
+
+        verifyNoMoreInteractions(timestampAuthority, proofRepository);
+    }
+
+    @Test
+    void shouldRejectNullHashWithoutCallingDependencies() {
         assertThrows(
                 NullPointerException.class,
                 () -> proofService.createProof(null)
         );
 
-        verifyNoInteractions(timestampAuthority);
+        verifyNoInteractions(timestampAuthority, proofRepository);
     }
 }
