@@ -1,5 +1,6 @@
 package io.github.tokagero8.proof3161.infrastructure.config;
 
+import io.github.tokagero8.proof3161.proof.ProofRepository;
 import io.github.tokagero8.proof3161.proof.ProofService;
 import io.github.tokagero8.proof3161.timestamp.TimestampAuthority;
 import org.springframework.context.annotation.Bean;
@@ -18,8 +19,13 @@ public class ProofConfiguration {
     @Bean
     ProofService proofService(
             TimestampAuthority timestampAuthority,
+            ProofRepository proofRepository,
             Clock clock
     ) {
-        return new ProofService(timestampAuthority, clock);
+        return new ProofService(
+                timestampAuthority,
+                proofRepository,
+                clock
+        );
     }
 }
