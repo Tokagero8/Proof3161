@@ -5,6 +5,7 @@ import io.github.tokagero8.proof3161.timestamp.TimestampAuthority;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 public final class ProofService {
@@ -47,5 +48,11 @@ public final class ProofService {
         );
 
         return proofRepository.save(proof);
+    }
+
+    public Optional<Proof> findById(UUID id) {
+        Objects.requireNonNull(id, "id cannot be null");
+
+        return proofRepository.findById(id);
     }
 }
