@@ -5,6 +5,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -57,5 +59,28 @@ public class ProofController {
                 ));
 
         return ProofResponse.fromDomain(proof);
+    }
+
+    @GetMapping("/{id}/receipt")
+    public ResponseEntity<PortableProofResponse> downloadReceipt(
+            @PathVariable("id") UUID id
+    ) {
+        var proof = proofService.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Proof not found"
+                ));
+
+        var disposition = ContentDisposition.attachment()
+                .filename("proof3161-" + id + ".proof.json")
+                .build();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        disposition.toString()
+                )
+                .body(PortableProofResponse.fromDomain(proof));
     }
 }
