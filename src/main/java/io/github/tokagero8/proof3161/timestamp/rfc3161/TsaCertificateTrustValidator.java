@@ -9,13 +9,23 @@ public final class TsaCertificateTrustValidator {
 
     private final Set<TrustAnchor> trustAnchors;
     private final List<CertStore> additionalStores;
+    private final Set<PKIXRevocationChecker.Option> revocationOptions;
 
     public TsaCertificateTrustValidator(
             Set<TrustAnchor> trustAnchors,
-            List<CertStore> additionalStore
+            List<CertStore> additionalStores
+    ) {
+        this(trustAnchors, additionalStores, Set.of());
+    }
+
+    public TsaCertificateTrustValidator(
+            Set<TrustAnchor> trustAnchors,
+            List<CertStore> additionalStores,
+            Set<PKIXRevocationChecker.Option> revocationOptions
     ) {
         this.trustAnchors = Set.copyOf(trustAnchors);
-        this.additionalStores = List.copyOf(additionalStore);
+        this.additionalStores = List.copyOf(additionalStores);
+        this.revocationOptions = Set.copyOf(revocationOptions);
 
         if (this.trustAnchors.isEmpty()) {
             throw new IllegalArgumentException(
@@ -59,7 +69,7 @@ public final class TsaCertificateTrustValidator {
         var revocationChecker =
                 (PKIXRevocationChecker) builder.getRevocationChecker();
 
-        revocationChecker.setOptions(Set.of());
+        revocationChecker.setOptions(revocationOptions);
         parameters.addCertPathChecker(revocationChecker);
         parameters.setRevocationEnabled(true);
 

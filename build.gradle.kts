@@ -41,3 +41,26 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("offline-crypto")
+    }
+}
+
+tasks.register<Test>("offlineProofTest") {
+    group = "verification"
+    description = "Verifies saved RFC 3161 evidence using local certificates and CRLs"
+
+    dependsOn(tasks.named("testClasses"))
+
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+
+    useJUnitPlatform {
+        includeTags("offline-crypto")
+    }
+
+    systemProperty("com.sun.security.enableCRLDP", "false")
+    systemProperty("com.sun.security.enableAIAcaIssuers", "false")
+}

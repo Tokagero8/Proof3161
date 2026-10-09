@@ -115,7 +115,7 @@ public class Rfc3161TimestampTokenVerifier implements TimestampTokenVerifier {
                 | ClassCastException exception) {
             throw new TimestampVerificationException(
                     MALFORMED_TOKEN,
-                    "Cannot parse the RFC 3151 timestamp token",
+                    "Cannot parse the RFC 3161 timestamp token",
                     exception
             );
         }
