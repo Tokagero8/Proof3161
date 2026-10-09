@@ -4,6 +4,7 @@ import io.github.tokagero8.proof3161.timestamp.TimestampTokenVerifier;
 import io.github.tokagero8.proof3161.timestamp.rfc3161.Rfc3161TimestampTokenVerifier;
 import io.github.tokagero8.proof3161.timestamp.rfc3161.Rfc3161TokenValidator;
 import io.github.tokagero8.proof3161.timestamp.rfc3161.TsaCertificateTrustValidator;
+import io.github.tokagero8.proof3161.verification.VerificationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,5 +60,12 @@ public class VerificationConfiguration {
                 tokenValidator,
                 trustValidator
         );
+    }
+
+    @Bean
+    VerificationService verificationService(
+            TimestampTokenVerifier tokenVerifier
+    ) {
+        return new VerificationService(tokenVerifier);
     }
 }
