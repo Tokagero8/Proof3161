@@ -54,10 +54,12 @@ public class Rfc3161ExternalIntegrationTest {
                 List.of()
         );
 
-        var responseValidator = new Rfc3161ResponseValidator(
+        var tokenVerifier = new Rfc3161TimestampTokenVerifier(
                 new Rfc3161TokenValidator(),
                 trustValidator
         );
+
+        var responseValidator = new Rfc3161ResponseValidator(tokenVerifier);
 
         byte[] document = "RFC 3161 integration test"
                 .getBytes(StandardCharsets.UTF_8);
@@ -131,10 +133,12 @@ public class Rfc3161ExternalIntegrationTest {
                 List.of()
         );
 
-        var responseValidator = new Rfc3161ResponseValidator(
+        var tokenVerifier = new Rfc3161TimestampTokenVerifier(
                 new Rfc3161TokenValidator(),
                 trustValidator
         );
+
+        var responseValidator = new Rfc3161ResponseValidator(tokenVerifier);
 
         byte[] document = "RFC 3161 integration test"
                 .getBytes(StandardCharsets.UTF_8);
@@ -195,6 +199,17 @@ public class Rfc3161ExternalIntegrationTest {
 
             System.out.println(
                     "TSA generation time: " + result.timestamp()
+            );
+
+            var verified = tokenVerifier.verify(result.token());
+
+            assertEquals(
+                    documentHash,
+                    verified.documentHash()
+            );
+            assertEquals(
+                    result.timestamp(),
+                    verified.timestamp()
             );
         }
     }

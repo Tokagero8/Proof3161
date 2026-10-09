@@ -4,7 +4,6 @@ import io.github.tokagero8.proof3161.proof.DocumentHash;
 import io.github.tokagero8.proof3161.timestamp.TimestampAuthority;
 import io.github.tokagero8.proof3161.timestamp.TimestampException;
 import io.github.tokagero8.proof3161.timestamp.TimestampResult;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.tsp.TSPException;
 
 import java.io.IOException;
@@ -37,7 +36,6 @@ public class Rfc3161TimestampAuthority implements TimestampAuthority {
             );
         } catch (IOException
                 | TSPException
-                | OperatorCreationException
                 | GeneralSecurityException exception){
             throw new TimestampException(
                     "Failed to validate TSA response", exception
