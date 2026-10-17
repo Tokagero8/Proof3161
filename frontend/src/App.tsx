@@ -2,12 +2,21 @@ import { useRef, useState } from 'react'
 
 import { FileSelector } from './components/FileSelector'
 import { MAX_FILE_SIZE_BYTES, sha256 } from './lib/sha256'
+import { createProof } from './api/proofs'
+import type { ProofResponse } from './api/proofs'
 import './App.css'
+
 
 type HashState =
     | { status: 'idle' }
     | { status: 'hashing'; fileName: string }
     | { status: 'success'; fileName: string; hash: string }
+    | { status: 'error'; message: string }
+
+type ProofState =
+    | { status: 'idle' }
+    | { status: 'creating' }
+    | { status: 'success'; proof: ProofResponse }
     | { status: 'error'; message: string }
 
 function App() {
@@ -17,7 +26,19 @@ function App() {
 
     const requestIdRef = useRef(0)
 
+    const [proofState, setProofState] = useState<ProofState>({
+        status: 'idle',
+    })
+
+    const proofPendingRef = useRef(false)
+
     async function handleFileSelect(file: File): Promise<void> {
+        if (proofPendingRef.current) {
+            return
+        }
+
+        setProofState({ status: 'idle' })
+
         const requestId = ++requestIdRef.current
 
         setState({
@@ -52,6 +73,37 @@ function App() {
         }
     }
 
+    async function handleCreateProof(): Promise<void> {
+        if (
+            state.status !== 'success'
+            || proofPendingRef.current
+            || proofState.status === 'success'
+        ) {
+            return
+        }
+
+        proofPendingRef.current = true
+        setProofState({ status: 'creating' })
+
+        try {
+            const proof = await createProof(state.hash)
+
+            setProofState({
+                status: 'success',
+                proof,
+            })
+        } catch (error) {
+            setProofState({
+                status: 'error',
+                message: error instanceof Error && error.message
+                    ? error.message
+                    : 'Unable to create the proof.',
+            })
+        } finally {
+            proofPendingRef.current = false
+        }
+    }
+
     return (
         <div className="app-shell">
             <header className="site-header">
@@ -81,15 +133,14 @@ function App() {
                             Hash document
                         </a>
 
-                        <span className="sidebar-link unavailable">
-              Create proof
-              <small>Planned</small>
-            </span>
+                        <a className="sidebar-link" href="#create-proof">
+                            Create proof
+                        </a>
 
                         <span className="sidebar-link unavailable">
-              Verify receipt
-              <small>Planned</small>
-            </span>
+                            Verify receipt
+                            <small>Planned</small>
+                        </span>
                     </nav>
 
                     <div className="sidebar-note">
@@ -125,7 +176,10 @@ function App() {
 
                         <FileSelector
                             onFileSelect={handleFileSelect}
-                            disabled={state.status === 'hashing'}
+                            disabled={
+                                state.status === 'hashing'
+                                || proofState.status === 'creating'
+                            }
                         />
 
                         <p className="helper-text">
@@ -191,6 +245,80 @@ function App() {
                     </section>
 
                     <section
+                        id="create-proof"
+                        className="proof-section"
+                        aria-labelledby="proof-heading"
+                    >
+                        <h2 id="proof-heading">Create a proof</h2>
+
+                        <p className="helper-text">
+                            Submit the fingerprint to obtain an RFC 3161 timestamp.
+                        </p>
+
+                        <button
+                            type="button"
+                            className="primary-button"
+                            onClick={handleCreateProof}
+                            disabled={
+                                state.status !== 'success'
+                                || proofState.status === 'creating'
+                                || proofState.status === 'success'
+                            }
+                        >
+                            {proofState.status === 'creating'
+                                ? 'Creating proof…'
+                                : 'Create proof'}
+                        </button>
+
+                        <div role="status" aria-live="polite">
+                            {proofState.status === 'creating' && (
+                                <p className="processing-message">
+                                    Waiting for the timestamp authority…
+                                </p>
+                            )}
+
+                            {proofState.status === 'success' && (
+                                <div className="proof-details">
+                                    <p className="success-message">Proof created.</p>
+
+                                    <dl>
+                                        <dt>Proof ID</dt>
+                                        <dd>{proofState.proof.id}</dd>
+
+                                        <dt>Timestamp</dt>
+                                        <dd>
+                                            <time dateTime={proofState.proof.timestampAt}>
+                                                {proofState.proof.timestampAt}
+                                            </time>
+                                        </dd>
+                                    </dl>
+
+                                    <p>
+                                        <a
+                                            className="receipt-download"
+                                            href={`/api/v1/proofs/${encodeURIComponent(proofState.proof.id)}/receipt`}
+                                            download={`proof3161-${proofState.proof.id}.proof.json`}
+                                        >
+                                            Download .proof.json
+                                        </a>
+                                    </p>
+
+                                    <p className="helper-text">
+                                        Keep this receipt together with your original document.
+                                        It contains the document fingerprint and signed timestamp.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {proofState.status === 'error' && (
+                            <p className="error-message" role="alert">
+                                {proofState.message}
+                            </p>
+                        )}
+                    </section>
+
+                    <section
                         className="information-section"
                         aria-labelledby="information-heading"
                     >
@@ -205,9 +333,9 @@ function App() {
                         </p>
 
                         <p>
-                            A fingerprint alone does not prove when a document
-                            existed. The next step will use an RFC 3161 timestamp
-                            authority to create a signed proof.
+                            A fingerprint alone does not prove when a document existed.
+                            Creating a proof obtains a signed RFC 3161 timestamp
+                            for that fingerprint.
                         </p>
                     </section>
                 </main>

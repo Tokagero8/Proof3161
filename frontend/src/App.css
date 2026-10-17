@@ -405,3 +405,53 @@ h2 {
     animation-duration: 0.01ms !important;
   }
 }
+
+.proof-section {
+  margin-bottom: 3rem;
+}
+
+.primary-button {
+  padding: 0.7rem 1rem;
+  border: 1px solid #234f7d;
+  border-radius: 4px;
+  background: #234f7d;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.primary-button:focus-visible {
+  outline: 3px solid #7da9d3;
+  outline-offset: 3px;
+}
+
+.proof-details {
+  margin-top: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.proof-details dt {
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+.proof-details dd {
+  margin: 0.25rem 0 0;
+}
+
+.receipt-download {
+  color: #234f7d;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.receipt-download:focus-visible {
+  outline: 3px solid #7da9d3;
+  outline-offset: 3px;
+}
