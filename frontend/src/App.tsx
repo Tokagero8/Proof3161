@@ -297,7 +297,6 @@ function App() {
                                         <a
                                             className="receipt-download"
                                             href={`/api/v1/proofs/${encodeURIComponent(proofState.proof.id)}/receipt`}
-                                            download={`proof3161-${proofState.proof.id}.proof.json`}
                                         >
                                             Download .proof.json
                                         </a>

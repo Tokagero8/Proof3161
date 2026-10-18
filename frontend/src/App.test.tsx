@@ -222,10 +222,5 @@ describe('proof creation', () => {
             'href',
             `/api/v1/proofs/${PROOF.id}/receipt`,
         )
-
-        expect(link).toHaveAttribute(
-            'download',
-            `proof3161-${PROOF.id}.proof.json`,
-        )
     })
 })
