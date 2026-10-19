@@ -1,3 +1,5 @@
+import { isObject, isUtcTimestamp } from '../lib/validation'
+
 export type ProofResponse = {
     id: string
     hashAlgorithm: 'SHA256'
@@ -5,33 +7,6 @@ export type ProofResponse = {
     timestampAt: string
     timestampTokenBase64: string
     createdAt: string
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object'
-        && value !== null
-        && !Array.isArray(value)
-}
-
-function isUtcTimestamp(value: unknown): value is string {
-    if (typeof value !== 'string') {
-        return false
-    }
-
-    const match =
-        /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.\d{1,9})?Z$/.exec(value)
-
-    if (!match || match[0] !== value) {
-        return false
-    }
-
-    // Validate calendar and time components at whole-second precision.
-    // Keep the original timestamp string, including fractional digits.
-    const normalized = `${match[1]}.000Z`
-    const date = new Date(normalized)
-
-    return Number.isFinite(date.getTime())
-        && date.toISOString() === normalized
 }
 
 function isProofResponse(value: unknown): value is ProofResponse {
