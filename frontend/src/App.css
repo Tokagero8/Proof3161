@@ -455,3 +455,130 @@ h2 {
   outline: 3px solid #7da9d3;
   outline-offset: 3px;
 }
+
+/* Receipt verification */
+
+:root {
+  --verification-valid: #215c43;
+  --verification-valid-background: #f0f7f3;
+  --verification-invalid: #992934;
+  --verification-invalid-background: #fff1f2;
+  --verification-indeterminate: #765015;
+  --verification-indeterminate-background: #fff8e8;
+}
+
+.sidebar-link:hover {
+  background: #e5effb;
+}
+
+.sidebar-link:focus-visible,
+.verification-section:focus-visible,
+.verification-technical-details summary:focus-visible {
+  outline: 3px solid #7da9d3;
+  outline-offset: 3px;
+}
+
+.verification-section {
+  min-width: 0;
+  margin-bottom: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e1e7ee;
+  scroll-margin-top: 1.5rem;
+  color-scheme: light;
+}
+
+.verification-inputs {
+  display: grid;
+  gap: 2rem;
+  margin: 1.75rem 0;
+}
+
+.verification-input {
+  min-width: 0;
+}
+
+.verification-input h3,
+.verification-result h3 {
+  margin: 0 0 1rem;
+  color: #1c2e43;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.verification-input .selected-file {
+  margin: 1rem 0 0.5rem;
+}
+
+.verification-input-status {
+  margin: 0.75rem 0;
+  color: #586b80;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.receipt-metadata,
+.verification-result dl {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+}
+
+.receipt-metadata dt,
+.verification-result dt {
+  margin-top: 0.85rem;
+  font-weight: 600;
+}
+
+.receipt-metadata dd,
+.verification-result dd {
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.verification-announcement {
+  margin-top: 1rem;
+}
+
+.verification-result {
+  padding: 1.25rem;
+  border-left: 3px solid;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+
+.verification-result p,
+.verification-section .error-message p {
+  margin: 0.75rem 0 0;
+  line-height: 1.65;
+}
+
+.verification-result--valid {
+  color: var(--verification-valid);
+  background: var(--verification-valid-background);
+  border-left-color: var(--verification-valid);
+}
+
+.verification-result--invalid {
+  color: var(--verification-invalid);
+  background: var(--verification-invalid-background);
+  border-left-color: var(--verification-invalid);
+}
+
+.verification-result--indeterminate {
+  color: var(--verification-indeterminate);
+  background: var(--verification-indeterminate-background);
+  border-left-color: var(--verification-indeterminate);
+}
+
+.verification-technical-details {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.verification-technical-details summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.verification-reason-code {
+  font-family: 'Roboto Mono', Consolas, monospace;
+}

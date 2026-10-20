@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 
 import { FileSelector } from './components/FileSelector'
+import { VerifyReceipt } from './components/VerifyReceipt'
 import { MAX_FILE_SIZE_BYTES, sha256 } from './lib/sha256'
 import { createProof } from './api/proofs'
 import type { ProofResponse } from './api/proofs'
@@ -124,12 +125,7 @@ function App() {
                 <aside className="sidebar">
                     <nav aria-label="Application workflow">
                         <p className="sidebar-heading">WORKFLOW</p>
-
-                        <a
-                            className="sidebar-link active"
-                            href="#hash-document"
-                            aria-current="page"
-                        >
+                        <a className="sidebar-link" href="#hash-document">
                             Hash document
                         </a>
 
@@ -137,10 +133,9 @@ function App() {
                             Create proof
                         </a>
 
-                        <span className="sidebar-link unavailable">
+                        <a className="sidebar-link" href="#verify-receipt">
                             Verify receipt
-                            <small>Planned</small>
-                        </span>
+                        </a>
                     </nav>
 
                     <div className="sidebar-note">
@@ -316,6 +311,8 @@ function App() {
                             </p>
                         )}
                     </section>
+
+                    <VerifyReceipt />
 
                     <section
                         className="information-section"
