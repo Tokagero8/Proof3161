@@ -121,7 +121,9 @@ test('hashes a document, creates a proof, and downloads its receipt', async ({
 
     await page.goto('/')
 
-    const fileInput = page.locator('input[type="file"]')
+    const fileInput = page
+        .getByRole('region', { name: 'Select a file', exact: true })
+        .locator('input[type="file"]')
     const createButton = page.getByRole('button', {
         name: 'Create proof',
         exact: true,
@@ -218,7 +220,10 @@ test('shows a timestamping error and preserves the calculated hash', async ({
 
     await page.goto('/')
 
-    await page.locator('input[type="file"]').setInputFiles({
+    await page
+        .getByRole('region', { name: 'Select a file', exact: true })
+        .locator('input[type="file"]')
+        .setInputFiles({
         name: 'document.txt',
         mimeType: 'text/plain',
         buffer: Buffer.from('abc', 'utf8'),
