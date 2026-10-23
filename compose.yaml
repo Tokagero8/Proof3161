@@ -1,0 +1,132 @@
+name: proof3161
+
+services:
+  postgres:
+    image: postgres:18.3
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: "${DB_NAME:-proof3161}"
+      POSTGRES_USER: "${DB_USERNAME:-proof3161}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+    networks:
+      - database
+
+    healthcheck:
+      test: >-
+        pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    stop_grace_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+    init: true
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      DB_URL: "jdbc:postgresql://postgres:5432/${DB_NAME:-proof3161}"
+      DB_USERNAME: "${DB_USERNAME:-proof3161}"
+      DB_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
+
+      TSA_URL: "${TSA_URL:?Set TSA_URL in .env}"
+      TSA_TRUSTED_ROOT_PATH: /run/certificates/tsa-root.pem
+
+      SERVER_PORT: "8080"
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: never
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_COMPONENTS: never
+
+    volumes:
+      - type: bind
+        source: "${TSA_ROOT_CERT_FILE:?Set TSA_ROOT_CERT_FILE in .env}"
+        target: /run/certificates/tsa-root.pem
+        read_only: true
+        bind:
+          create_host_path: false
+
+    networks:
+      - web
+      - database
+
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: >-
+        curl --fail --silent --show-error --max-time 5
+        http://127.0.0.1:8080/actuator/health
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 60s
+
+    stop_grace_period: 45s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    restart: unless-stopped
+
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8088}:8080"
+
+    networks:
+      - web
+
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    cap_drop:
+      - ALL
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: >-
+        wget -q -O /dev/null http://127.0.0.1:8080/index.html
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres_data:
+
+networks:
+  web:
+  database:
+    internal: true

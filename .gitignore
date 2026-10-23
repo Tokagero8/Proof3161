@@ -36,3 +36,9 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Local container configuration ###
+.env
+.env.*
+!.env.example
+/certificates/
