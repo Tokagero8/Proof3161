@@ -20,6 +20,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -33,10 +35,12 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -192,6 +196,73 @@ public class ProofApiIntegrationTest {
                 .andExpect(jsonPath("$.createdAt").value(
                         CREATED_AT.toString()
                 ));
+
+        byte[] persistedToken = jdbcTemplate.queryForObject(
+                "SELECT timestamp_token FROM proofs WHERE id = ?",
+                byte[].class,
+                id
+        );
+
+        assertNotNull(persistedToken);
+        assertArrayEquals(
+                stored.timestampResult().token(),
+                persistedToken,
+                "Repository token must match the bytes stored in PostgreSQL"
+        );
+
+        var receiptResponse = mockMvc.perform(
+                        get("/api/v1/proofs/{id}/receipt", id)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON
+                ))
+                .andReturn()
+                .getResponse();
+
+        var receipt = objectMapper.readTree(
+                receiptResponse.getContentAsString()
+        );
+
+        var expectedReceipt = objectMapper.createObjectNode()
+                .put("version", "1")
+                .put("hashAlgorithm", stored.documentHash().algorithm().name())
+                .put("documentHash", stored.documentHash().value())
+                .put("timestampAt", stored.timestampResult().timestamp().toString())
+                .put(
+                        "timestampTokenBase64",
+                        Base64.getEncoder().encodeToString(persistedToken)
+                );
+
+        assertEquals(
+                expectedReceipt,
+                receipt,
+                "Receipt must contain exactly the five supported fields and persisted values"
+        );
+
+        byte[] exportedToken = Base64.getDecoder().decode(
+                receipt.get("timestampTokenBase64").asText()
+        );
+
+        assertArrayEquals(
+                persistedToken,
+                exportedToken,
+                "Receipt must preserve every byte of the persisted timestamp token"
+        );
+
+        String dispositionHeader = receiptResponse.getHeader(
+                HttpHeaders.CONTENT_DISPOSITION
+        );
+
+        assertNotNull(dispositionHeader);
+
+        var disposition = ContentDisposition.parse(dispositionHeader);
+
+        assertEquals("attachment", disposition.getType());
+        assertEquals(
+                "proof3161-" + id + ".proof.json",
+                disposition.getFilename()
+        );
 
         verify(timestampAuthority).timestamp(DOCUMENT_HASH);
         verifyNoMoreInteractions(timestampAuthority);
