@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.cert.CertPathBuilder;
 import java.security.cert.CertStore;
 import java.security.cert.CertificateFactory;
@@ -37,6 +38,7 @@ import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 
@@ -144,6 +146,22 @@ public class Rfc3161PortableProofIntegrationTest {
 
         service = serviceUsing(
                 Set.of(new TrustAnchor(root, null))
+        );
+    }
+
+    @Test
+    void shouldMatchRecordedHashToFixtureDocument() throws Exception {
+        byte[] documentBytes = resource("fixture-document.txt");
+
+        byte[] calculatedDigest = MessageDigest.getInstance("SHA-256")
+                .digest(documentBytes);
+
+        String calculatedHash = HexFormat.of().formatHex(calculatedDigest);
+
+        assertEquals(
+                expectedHash.value(),
+                calculatedHash,
+                "fixture-document.txt must match expected-document.sha256"
         );
     }
 

@@ -78,7 +78,7 @@ jobs:
               (
                   "offlineProofTest",
                   f"{package}.verification.Rfc3161PortableProofIntegrationTest",
-              ): 6,
+              ): 7,
           }
 
           for (task, class_name), minimum_tests in required.items():
