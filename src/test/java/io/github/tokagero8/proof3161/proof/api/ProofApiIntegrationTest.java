@@ -31,7 +31,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.MountableFile;
 import tools.jackson.databind.ObjectMapper;
+
+import java.nio.file.Path;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -76,12 +79,28 @@ public class ProofApiIntegrationTest {
     private static final DocumentHash DOCUMENT_HASH =
             new DocumentHash(HashAlgorithm.SHA256, HASH);
 
+    private static final String APPLICATION_USERNAME =
+            "proof3161_app";
+
+    private static final String APPLICATION_PASSWORD =
+            "application-test-password";
+
     @Container
     static final PostgreSQLContainer postgres =
             new PostgreSQLContainer("postgres:18.3")
                     .withDatabaseName("proof3161_api_test")
                     .withUsername("test")
-                    .withPassword("test");
+                    .withPassword("test")
+                    .withEnv("APP_DB_USERNAME", APPLICATION_USERNAME)
+                    .withEnv("APP_DB_PASSWORD", APPLICATION_PASSWORD)
+                    .withCopyFileToContainer(
+                            MountableFile.forHostPath(
+                                    Path.of("deploy/postgres/10-create-app-role.sh")
+                                            .toAbsolutePath()
+                                            .toString()
+                            ),
+                            "/docker-entrypoint-initdb.d/10-create-app-role.sh"
+                    );
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -91,11 +110,11 @@ public class ProofApiIntegrationTest {
         );
         registry.add(
                 "spring.datasource.username",
-                postgres::getUsername
+                () -> APPLICATION_USERNAME
         );
         registry.add(
                 "spring.datasource.password",
-                postgres::getPassword
+                () -> APPLICATION_PASSWORD
         );
     }
 
@@ -262,6 +281,11 @@ public class ProofApiIntegrationTest {
         assertEquals(
                 "proof3161-" + id + ".proof.json",
                 disposition.getFilename()
+        );
+
+        assertEquals(
+                APPLICATION_USERNAME,
+                jdbcTemplate.queryForObject("SELECT current_user", String.class)
         );
 
         verify(timestampAuthority).timestamp(DOCUMENT_HASH);

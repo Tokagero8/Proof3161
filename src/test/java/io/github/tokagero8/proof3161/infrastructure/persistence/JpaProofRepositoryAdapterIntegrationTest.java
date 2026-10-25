@@ -20,6 +20,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.MountableFile;
+
+import java.nio.file.Path;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -45,12 +48,28 @@ public class JpaProofRepositoryAdapterIntegrationTest {
     private static final Instant CREATED_AT =
             Instant.parse("2026-10-08T12:00:05.123456Z");
 
+    private static final String APPLICATION_USERNAME =
+            "proof3161_app";
+
+    private static final String APPLICATION_PASSWORD =
+            "application-test-password";
+
     @Container
     static final PostgreSQLContainer postgres =
             new PostgreSQLContainer("postgres:18.3")
                     .withDatabaseName("proof3161_test")
                     .withUsername("test")
-                    .withPassword("test");
+                    .withPassword("test")
+                    .withEnv("APP_DB_USERNAME", APPLICATION_USERNAME)
+                    .withEnv("APP_DB_PASSWORD", APPLICATION_PASSWORD)
+                    .withCopyFileToContainer(
+                            MountableFile.forHostPath(
+                                    Path.of("deploy/postgres/10-create-app-role.sh")
+                                            .toAbsolutePath()
+                                            .toString()
+                            ),
+                            "/docker-entrypoint-initdb.d/10-create-app-role.sh"
+                    );
 
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -60,11 +79,11 @@ public class JpaProofRepositoryAdapterIntegrationTest {
         );
         registry.add(
                 "spring.datasource.username",
-                postgres::getUsername
+                () -> APPLICATION_USERNAME
         );
         registry.add(
                 "spring.datasource.password",
-                postgres::getPassword
+                () -> APPLICATION_PASSWORD
         );
     }
 
@@ -152,6 +171,50 @@ public class JpaProofRepositoryAdapterIntegrationTest {
         );
 
         assertEquals(Boolean.TRUE, tableExists);
+        assertEquals(
+                APPLICATION_USERNAME,
+                jdbcTemplate.queryForObject("SELECT current_user", String.class)
+        );
+
+        assertEquals(
+                Boolean.FALSE,
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT rolsuper
+                            OR rolcreatedb
+                            OR rolcreaterole
+                            OR rolreplication
+                            OR rolbypassrls
+                        FROM pg_roles
+                        WHERE rolname = current_user
+                        """,
+                        Boolean.class
+                )
+        );
+
+        assertEquals(
+                APPLICATION_USERNAME,
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT pg_get_userbyid(relowner)
+                        FROM pg_class
+                        WHERE oid = 'public.proofs'::regclass
+                        """,
+                        String.class
+                )
+        );
+
+        assertEquals(
+                APPLICATION_USERNAME,
+                jdbcTemplate.queryForObject(
+                        """
+                        SELECT pg_get_userbyid(relowner)
+                        FROM pg_class
+                        WHERE oid = 'public.flyway_schema_history'::regclass
+                        """,
+                        String.class
+                )
+        );
     }
 
     private void flushAndClear() {

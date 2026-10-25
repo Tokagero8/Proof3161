@@ -226,6 +226,8 @@ jobs:
         env:
           HTTP_PORT: "8088"
           DB_NAME: proof3161_ci
+          POSTGRES_ADMIN_USERNAME: proof3161_ci_admin
+          POSTGRES_ADMIN_PASSWORD: ci-admin-config-validation-only
           DB_USERNAME: proof3161_ci
           DB_PASSWORD: ci-config-validation-only
           TSA_URL: https://tsa.invalid/tsr
