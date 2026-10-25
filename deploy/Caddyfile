@@ -1,0 +1,29 @@
+{
+	email {$ACME_EMAIL}
+}
+
+{$PUBLIC_DOMAIN} {
+	reverse_proxy frontend:8080 {
+		# This is the first public proxy: use the connection's peer address.
+		header_up X-Forwarded-For {http.request.remote.host}
+
+		# The application is reached through this site's HTTPS listener.
+		header_up Host {$PUBLIC_DOMAIN}
+		header_up X-Forwarded-Host {$PUBLIC_DOMAIN}
+		header_up X-Forwarded-Proto https
+
+		# Remove alternative client-supplied forwarding information.
+		header_up -Forwarded
+		header_up -X-Forwarded-Port
+		header_up -X-Forwarded-Prefix
+		header_up -X-Forwarded-Ssl
+		header_up -X-Real-IP
+
+		# Do not enable application-level upstream retries.
+		lb_try_duration 0s
+
+		transport http {
+			dial_timeout 5s
+		}
+	}
+}
