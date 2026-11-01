@@ -7,11 +7,19 @@ services:
 
     environment:
       POSTGRES_DB: "${DB_NAME:-proof3161}"
-      POSTGRES_USER: "${DB_USERNAME:-proof3161}"
-      POSTGRES_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
+      POSTGRES_USER: "${POSTGRES_ADMIN_USERNAME:-proof3161_admin}"
+      POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?Set POSTGRES_ADMIN_PASSWORD in .env}"
+      APP_DB_USERNAME: "${DB_USERNAME:-proof3161_app}"
+      APP_DB_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
 
     volumes:
       - postgres_data:/var/lib/postgresql
+      - type: bind
+        source: ./deploy/postgres/10-create-app-role.sh
+        target: /docker-entrypoint-initdb.d/10-create-app-role.sh
+        read_only: true
+        bind:
+          create_host_path: false
 
     networks:
       - database
@@ -40,7 +48,7 @@ services:
 
     environment:
       DB_URL: "jdbc:postgresql://postgres:5432/${DB_NAME:-proof3161}"
-      DB_USERNAME: "${DB_USERNAME:-proof3161}"
+      DB_USERNAME: "${DB_USERNAME:-proof3161_app}"
       DB_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
 
       TSA_URL: "${TSA_URL:?Set TSA_URL in .env}"

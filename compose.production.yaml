@@ -1,0 +1,71 @@
+services:
+  frontend:
+    ports: !override []
+
+    volumes:
+      - type: bind
+        source: ./deploy/nginx.production.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind:
+          create_host_path: false
+
+    networks:
+      web: {}
+      edge: {}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+
+    depends_on:
+      frontend:
+        condition: service_healthy
+
+    environment:
+      PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?Set PUBLIC_DOMAIN in .env}"
+      ACME_EMAIL: "${ACME_EMAIL:?Set ACME_EMAIL in .env}"
+
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+
+    volumes:
+      - type: bind
+        source: ./deploy/Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind:
+          create_host_path: false
+      - caddy_data:/data
+      - caddy_config:/config
+
+    networks:
+      edge:
+        ipv4_address: 172.30.90.2
+
+    read_only: true
+
+    tmpfs:
+      - /tmp
+
+    cap_drop:
+      - ALL
+
+    cap_add:
+      - NET_BIND_SERVICE
+
+    security_opt:
+      - no-new-privileges:true
+
+    stop_grace_period: 30s
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: 172.30.90.0/29

@@ -8,3 +8,4 @@
 /frontend/Dockerfile text eol=lf
 /frontend/.dockerignore text eol=lf
 /frontend/nginx.conf text eol=lf
+/deploy/postgres/*.sh text eol=lf
