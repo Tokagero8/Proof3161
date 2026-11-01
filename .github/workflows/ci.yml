@@ -233,9 +233,16 @@ jobs:
           DB_PASSWORD: ci-config-validation-only
           TSA_URL: https://tsa.invalid/tsr
           TSA_ROOT_CERT_FILE: ./src/test/resources/fixtures/rfc3161/tsa-root.pem
+          PUBLIC_DOMAIN: proof.example.com
+          ACME_EMAIL: ci@example.com
         run: |
           test -f "$TSA_ROOT_CERT_FILE"
           docker compose \
             --env-file .env.example \
             -f compose.yaml \
+            config --quiet
+          docker compose \
+            --env-file .env.example \
+            -f compose.yaml \
+            -f compose.production.yaml \
             config --quiet
