@@ -366,3 +366,5 @@ Expect successful `nginx -t` and seven `PASS:` lines. Recreating Nginx clears ra
 
 
 ## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
